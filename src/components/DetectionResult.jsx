@@ -1,6 +1,35 @@
+import { useState, useRef, useEffect } from "react";
 import { AlertTriangle, CheckCircle, Loader, Users, Clock, Cpu } from "lucide-react";
 
 export default function DetectionResult({ result, image, loading }) {
+  const imageRef = useRef(null);
+  const [displayDimensions, setDisplayDimensions] = useState({ width: 0, height: 0 });
+
+  // Handle image load to get display dimensions
+  const handleImageLoad = () => {
+    if (imageRef.current) {
+      setDisplayDimensions({
+        width: imageRef.current.clientWidth,
+        height: imageRef.current.clientHeight
+      });
+    }
+  };
+
+  // Update dimensions on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (imageRef.current) {
+        setDisplayDimensions({
+          width: imageRef.current.clientWidth,
+          height: imageRef.current.clientHeight
+        });
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (loading) {
     return (
       <div className="bg-slate-800/50 rounded-xl p-8 border border-slate-700">
@@ -10,15 +39,6 @@ export default function DetectionResult({ result, image, loading }) {
           </div>
           <h3 className="text-xl font-semibold text-white mb-2">AI Model Processing</h3>
           <p className="text-slate-400">Neural network analyzing image...</p>
-          <div className="mt-4 w-full bg-slate-700 rounded-full h-2">
-            <div className="bg-emerald-500 h-2 rounded-full animate-pulse" style={{width: '70%'}}></div>
-          </div>
-          <div className="mt-2 text-xs text-slate-500">
-            <div className="flex items-center justify-center gap-2">
-              <Cpu className="w-4 h-4" />
-              <span>YOLO/CNN Processing...</span>
-            </div>
-          </div>
         </div>
       </div>
     );
@@ -78,51 +98,51 @@ export default function DetectionResult({ result, image, loading }) {
             </p>
           </div>
         </div>
-
-        {/* Detection Metadata */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-slate-400" />
-            <span className="text-slate-300">Targets: {threatCount}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4 text-slate-400" />
-            <span className="text-slate-300">
-              {result.timestamp ? new Date(result.timestamp).toLocaleTimeString() : 'Now'}
-            </span>
-          </div>
-        </div>
       </div>
 
-      {/* Image with Bounding Boxes */}
+      {/* Image with Bounding Boxes - FIXED */}
       {image && (
         <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
           <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
             <Cpu className="w-5 h-5 text-emerald-400" />
             AI Analysis Result
           </h4>
-          <div className="relative inline-block">
+          <div className="relative inline-block w-full">
             <img 
+              ref={imageRef}
               src={image} 
               alt="Detection scan" 
               className="max-w-full h-auto rounded-lg border-2 border-slate-600" 
+              onLoad={handleImageLoad}
             />
-            {result.boxes?.map((box, i) => (
-              <div
-                key={i}
-                className="absolute border-2 border-red-500 bg-red-500/20 animate-pulse"
-                style={{
-                  left: `${box[0]}px`,
-                  top: `${box[1]}px`,
-                  width: `${box[2] - box[0]}px`,
-                  height: `${box[3] - box[1]}px`,
-                }}
-              >
-                <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-2 py-1 rounded font-semibold">
-                  TARGET {i + 1}
+            {/* Quick CSS Fix - Use percentage positioning */}
+            {result.boxes?.map((box, i) => {
+              const originalWidth = result.imageSize?.width || 1;
+              const originalHeight = result.imageSize?.height || 1;
+              
+              // Convert to percentages
+              const leftPercent = (box[0] / originalWidth) * 100;
+              const topPercent = (box[1] / originalHeight) * 100;
+              const widthPercent = ((box[2] - box[0]) / originalWidth) * 100;
+              const heightPercent = ((box[3] - box[1]) / originalHeight) * 100;
+              
+              return (
+                <div
+                  key={i}
+                  className="absolute border-2 border-red-500 bg-red-500/20 animate-pulse"
+                  style={{
+                    left: `${Math.max(0, Math.min(95, leftPercent))}%`,
+                    top: `${Math.max(0, Math.min(95, topPercent))}%`,
+                    width: `${Math.max(2, Math.min(50, widthPercent))}%`,
+                    height: `${Math.max(2, Math.min(50, heightPercent))}%`,
+                  }}
+                >
+                  <div className="absolute -top-6 left-0 bg-red-500 text-white text-xs px-2 py-1 rounded font-semibold">
+                    TARGET {i + 1}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
           
           {/* Detection Stats */}
@@ -130,9 +150,12 @@ export default function DetectionResult({ result, image, loading }) {
             <div className="text-xs text-slate-400 space-y-1">
               <div>Model: YOLO/CNN Neural Network</div>
               <div>Confidence Threshold: 50%</div>
-              <div>Processing Time: ~2-5 seconds</div>
+              <div>Targets Detected: {threatCount}</div>
               {result.imageSize && (
-                <div>Image Size: {result.imageSize.width}x{result.imageSize.height}</div>
+                <div>
+                  Original: {result.imageSize.width}x{result.imageSize.height} | 
+                  Display: {Math.round(displayDimensions.width)}x{Math.round(displayDimensions.height)}
+                </div>
               )}
             </div>
           </div>
