@@ -2,11 +2,11 @@ import { Shield, Users, Target, Zap, Eye, Sun, Wifi, MapPin, AlertTriangle, Chec
 
 export default function About() {
   const teamMembers = [
-    { name: "Ayush Kumar", role: "Team Leader", contact: "+91 7488380891" },
-    { name: "Ashish Kumar", role: "AI/ML Engineer" },
-    { name: "Ayoan Singh", role: "Hardware Specialist" },
-    { name: "Aryan Kumar", role: "Software Developer" },
-    { name: "Ayushman Praharaj", role: "Systems Engineer" }
+    { name: "Ayush Kumar", role: "Team Leader/ ML devloper" },
+    { name: "Ashish Kumar", role: "AI/ML devloper" },
+    { name: "Ayoan Singh", role: "3D artist" },
+    { name: "Aryan Kumar", role: "ML devloper" },
+    { name: "Ayushman Praharaj", role: "Full stack ai devloper" }
   ];
 
   const problems = [

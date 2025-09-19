@@ -14,16 +14,41 @@ export async function detectHuman(file) {
       timeout: 30000, // 30 seconds
     });
 
+    // Handle military response format
+    const data = response.data;
+    
+    // Check if it's the new military format
+    if (data.detection) {
+      return {
+        success: true,
+        boxes: data.detection.bounding_boxes || [],
+        count: data.detection.targets_identified || 0,
+        confidences: data.detection.confidence_scores || [],
+        timestamp: data.timestamp,
+        imageSize: data.image_metadata?.dimensions ? {
+          width: parseInt(data.image_metadata.dimensions.split('x')[0]),
+          height: parseInt(data.image_metadata.dimensions.split('x')[1])
+        } : null,
+        modelUsed: data.detection.model_used,
+        processingTime: data.detection.processing_time,
+        threatLevel: data.detection.threat_assessment,
+        operationId: data.operation_id,
+        operator: data.operator
+      };
+    }
+    
+    // Fallback for old format
     return {
-      success: response.data.success,
-      boxes: response.data.boxes || [],
-      count: response.data.count || 0,
-      confidences: response.data.confidence_scores || [],
-      timestamp: response.data.timestamp,
-      imageSize: response.data.image_size,
-      modelUsed: response.data.model_used,
-      processingTime: response.data.processing_time
+      success: data.success || true,
+      boxes: data.boxes || [],
+      count: data.count || 0,
+      confidences: data.confidence_scores || data.confidences || [],
+      timestamp: data.timestamp,
+      imageSize: data.image_size,
+      modelUsed: data.model_used,
+      processingTime: data.processing_time
     };
+    
   } catch (error) {
     console.error("Detection API Error:", error);
     
@@ -31,7 +56,10 @@ export async function detectHuman(file) {
       throw new Error("Detection timeout - processing took too long");
     }
     
-    const errorMessage = error.response?.data?.detail || "Guard-X AI system connection failed";
+    // Handle military error responses
+    const errorMessage = error.response?.data?.detail || 
+                        error.response?.data?.message || 
+                        "Guard-X AI system connection failed";
     throw new Error(errorMessage);
   }
 }
